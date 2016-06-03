@@ -4,7 +4,11 @@ import matplotlib.pyplot
 # Test parameters
 TRAINING_SIZE = 100000
 TEST_SIZE = 100
-K = 100
+K = 30
+
+
+def distance(training_data, test_vector):
+	return np.sum((training_data - test_vector)**2, axis=1)**0.5
 
 my_data = np.genfromtxt('psf_z.csv', delimiter=',')[1:, :]
 
@@ -19,13 +23,13 @@ for i in range(0, TEST_SIZE):
 	if i%10 == 0:
 		print i
 	# A test vector containing five test parameters
-	test_data = my_data[TRAINING_SIZE+i, 3:]
+	test_vector = my_data[TRAINING_SIZE+i, 3:]
 	# Expected z shift value
 	expected_label = my_data[TRAINING_SIZE+i, 1]
 	points[i, 1] = expected_label
 
 	# Finding distance of each row of training data with test vector
-	v = np.sum((training_data - test_data)**2, axis=1)**0.5
+	v = distance(training_data, test_vector)
 
 	# Taking k nearest neigbours
 	v = np.column_stack((labels, v))
