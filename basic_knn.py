@@ -4,7 +4,7 @@ import matplotlib.pyplot
 # Test parameters
 TRAINING_SIZE = 100000
 TEST_SIZE = 1000
-K = 100
+K = 10
 
 
 def distance(training_data, test_vector):
