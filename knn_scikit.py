@@ -46,8 +46,14 @@ test_data = my_data[TRAINING_SIZE:TRAINING_SIZE+TEST_SIZE, 3:]
 # Expected z shift value
 expected_labels = my_data[TRAINING_SIZE:TRAINING_SIZE+TEST_SIZE, 1]
 
-#points = k_vs_rms(1, 100, 1, training_data, labels, test_data, expected_labels, 'uniform')
 output = knn_regression(K, training_data, labels, test_data)
-matplotlib.pyplot.scatter(output, expected_labels)
-#matplotlib.pyplot.scatter(points[:,0], points[:,1])
+matplotlib.pyplot.scatter(expected_labels, output)
+matplotlib.pyplot.title("Estimated Redshift vs True Redshift (K=21)")
+# Add some axis labels.
+matplotlib.pyplot.xlabel("True Redshift")
+matplotlib.pyplot.ylabel("Estimated Redshift")
 matplotlib.pyplot.show()
+
+# Code to optimize K
+# points = k_vs_rms(1, 100, 1, training_data, labels, test_data, expected_labels, 'uniform')
+# matplotlib.pyplot.scatter(points[:,0], points[:,1])
