@@ -4,21 +4,20 @@ import matplotlib.pyplot
 # Test parameters
 TRAINING_SIZE = 100000
 TEST_SIZE = 1000
-K = 10
+K = 100
 
 
 def distance(training_data, test_vector):
 	return np.sum((training_data - test_vector)**2, axis=1)**0.5
 
 my_data = np.genfromtxt('psf_z.csv', delimiter=',')[1:, :]
+# Scaling test parameters
+for i in range(3,8):
+	vector = my_data[:,i]
+	my_data[:,i] = (vector - np.amin(vector)) / (np.amax(vector) - np.amin(vector))
 
 # Training data and corresponding z values
 training_data = my_data[:TRAINING_SIZE, 3:]
-# Scaling test parameters
-for i in range(0,5):
-	vector = training_data[:,i]
-	print (np.amax(vector), np.amin(vector))
-	training_data[:,i] = (vector - np.amin(vector)) / (np.amax(vector) - np.amin(vector))
 # Redshift of training data
 labels = my_data[:TRAINING_SIZE, 1]
 
@@ -26,7 +25,7 @@ labels = my_data[:TRAINING_SIZE, 1]
 points = np.zeros([TEST_SIZE, 2])
 
 for i in range(0, TEST_SIZE):
-	if i%10 == 0:
+	if i%100 == 0:
 		print i
 	# A test vector containing five test parameters
 	test_vector = my_data[TRAINING_SIZE+i, 3:]

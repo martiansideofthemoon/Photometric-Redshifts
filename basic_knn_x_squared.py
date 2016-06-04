@@ -3,8 +3,8 @@ import random
 import matplotlib.pyplot
 
 # Test parameters
-TRAINING_SIZE = 5
-TEST_SIZE = 1000
+TRAINING_SIZE = 50
+TEST_SIZE = 10000
 K = 2
 
 
