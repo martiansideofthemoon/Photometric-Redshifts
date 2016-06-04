@@ -13,6 +13,7 @@ def k_vs_rms(START_K, END_K, STEP_K, training_data, labels, test_data, expected_
 	points = np.zeros([num_points, 2])
 	index = -1
 	for K in range(START_K, END_K, STEP_K):
+		print "k = " + str(K)
 		index += 1
 		output = knn_regression(K, training_data, labels, test_data, weights)
 		v = np.column_stack((output, expected_labels))
@@ -25,11 +26,12 @@ def k_vs_rms(START_K, END_K, STEP_K, training_data, labels, test_data, expected_
 	return points
 
 # Test parameters
-TRAINING_SIZE = 100000
-TEST_SIZE = 1000
-K = 10
+TRAINING_SIZE = 500000
+TEST_SIZE = 10000
+# K=24 works best as found by the k_vs_rms() function
+K = 24
 
-my_data = np.genfromtxt('psf_z.csv', delimiter=',')[1:, :]
+my_data = np.genfromtxt('psf2.csv', delimiter=',')[1:, :]
 # Scaling test parameters
 for i in range(3,8):
 	vector = my_data[:,i]
@@ -44,6 +46,8 @@ test_data = my_data[TRAINING_SIZE:TRAINING_SIZE+TEST_SIZE, 3:]
 # Expected z shift value
 expected_labels = my_data[TRAINING_SIZE:TRAINING_SIZE+TEST_SIZE, 1]
 
-points = k_vs_rms(1, 100, 1, training_data, labels, test_data, expected_labels, 'uniform')
-matplotlib.pyplot.scatter(points[:,0], points[:,1])
+#points = k_vs_rms(1, 100, 1, training_data, labels, test_data, expected_labels, 'uniform')
+output = knn_regression(K, training_data, labels, test_data)
+matplotlib.pyplot.scatter(output, expected_labels)
+#matplotlib.pyplot.scatter(points[:,0], points[:,1])
 matplotlib.pyplot.show()
