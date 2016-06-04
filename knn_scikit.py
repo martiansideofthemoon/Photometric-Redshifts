@@ -28,10 +28,10 @@ def k_vs_rms(START_K, END_K, STEP_K, training_data, labels, test_data, expected_
 # Test parameters
 TRAINING_SIZE = 500000
 TEST_SIZE = 10000
-# K=24 works best as found by the k_vs_rms() function
-K = 24
+# K=21 works best as found by the k_vs_rms() function
+K = 21
 
-my_data = np.genfromtxt('psf2.csv', delimiter=',')[1:, :]
+my_data = np.genfromtxt('data/psf2.csv', delimiter=',')[1:, :]
 # Scaling test parameters
 for i in range(3,8):
 	vector = my_data[:,i]

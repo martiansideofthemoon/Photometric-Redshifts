@@ -10,7 +10,7 @@ K = 10
 def distance(training_data, test_vector):
 	return np.sum((training_data - test_vector)**2, axis=1)**0.5
 
-my_data = np.genfromtxt('psf_z.csv', delimiter=',')[1:, :]
+my_data = np.genfromtxt('../data/psf2.csv', delimiter=',')[1:, :]
 # Scaling test parameters
 for i in range(3,8):
 	vector = my_data[:,i]
