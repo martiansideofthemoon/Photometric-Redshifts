@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from keras.optimizers import SGD, Adam, RMSprop
 
 print "Reading data..."
-data = np.genfromtxt("../data/psf2.csv",delimiter=",")[2:,1:]
+data = np.genfromtxt("data/psf2.csv",delimiter=",")[2:,1:]
 print "Data loaded..."
 
 print "Filtering data..."
@@ -57,7 +57,7 @@ print "Compiling model..."
 model.compile(loss='mean_squared_error', optimizer=RMSprop())
 print "Model compiled..."
 
-model.fit(K, M, nb_epoch = 300, batch_size=10000)
+model.fit(K, M, nb_epoch = 100, batch_size=10000)
 
 print "Predict and plotting..."
 Yp = model.predict(L, batch_size=10000)
