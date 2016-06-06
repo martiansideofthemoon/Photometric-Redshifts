@@ -37,15 +37,10 @@ model = Sequential()
 model.add(Dense(100, input_dim=1, activation='linear'))
 model.add(Dense(30, activation = 'linear'))
 model.add(Dense(1, activation = 'sigmoid'))
-
-# model = Sequential()
-# model.add(Dense(12, input_dim=1, init='uniform', activation='relu'))
-# model.add(Dense(8, init='uniform', activation='relu'))
-# model.add(Dense(1, init='uniform', activation='sigmoid'))
 print "Model defined..."
 
 print "Compiling model..."
-sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=False)
+#sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=False)
 model.compile(loss='mean_squared_error', optimizer=RMSprop())
 print "Model compiled..."
 
