@@ -28,8 +28,11 @@ assert Y.shape[1] == 1
 print "I/O vectors generated..."
 
 print "Normalizing data..."
-X = preprocessing.scale(X)
-Y = preprocessing.scale(Y)
+minx, maxx = np.min(X), np.max(X)
+miny, maxy = np.min(Y), np.max(Y)
+
+X = (X-minx)/(maxx-minx)
+Y = (Y-miny)/(maxy-miny)
 print "Data normalized..."
 
 K = X[:100000,:]
@@ -42,20 +45,19 @@ print "Defining model..."
 model = Sequential()
 
 # add a dense layer with 10 nodes
-model.add(Dense(100, input_dim=5))
-# activation sigmoid
-model.add(Activation('linear'))
+model.add(Dense(32, activation='linear',input_dim=5))
 # layer to output
-model.add(Dense(30, activation = 'linear'))
 model.add(Dense(1, activation = 'sigmoid'))
-model.add(BatchNormalization())
 print "Model defined..."
 
 print "Compiling model..."
 model.compile(loss='mean_squared_error', optimizer=RMSprop())
 print "Model compiled..."
 
-model.fit(K, M, nb_epoch = 300, batch_size=10000)
+fit_history = model.fit(K, M, nb_epoch = 300, batch_size=10000)
+
+plt.plot(fit_history.history['loss'])
+plt.show()
 
 print "Predict and plotting..."
 Yp = model.predict(L, batch_size=10000)
