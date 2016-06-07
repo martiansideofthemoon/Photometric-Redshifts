@@ -3,9 +3,10 @@
 from keras.models import Sequential
 import numpy as np
 from math import isnan
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, BatchNormalization
 import matplotlib.pyplot as plt
 from keras.optimizers import SGD, Adam, RMSprop
+from sklearn import preprocessing
 
 print "Reading data..."
 data = np.genfromtxt("../data/psf2.csv",delimiter=",")[2:,1:]
@@ -27,12 +28,8 @@ assert Y.shape[1] == 1
 print "I/O vectors generated..."
 
 print "Normalizing data..."
-minx, maxx = np.min(X), np.max(X)
-miny, maxy = np.min(Y), np.max(Y)
-
-
-X = (X-minx)/(maxx-minx)
-Y = (Y-miny)/(maxy-miny)
+X = preprocessing.scale(X)
+Y = preprocessing.scale(Y)
 print "Data normalized..."
 
 K = X[:100000,:]
@@ -51,6 +48,7 @@ model.add(Activation('linear'))
 # layer to output
 model.add(Dense(30, activation = 'linear'))
 model.add(Dense(1, activation = 'sigmoid'))
+model.add(BatchNormalization())
 print "Model defined..."
 
 print "Compiling model..."
