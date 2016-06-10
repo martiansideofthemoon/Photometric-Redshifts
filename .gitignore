@@ -1,4 +1,6 @@
 *.csv
 *.swp
 *~
+*.swo
+*.pyc
 
