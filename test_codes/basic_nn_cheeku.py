@@ -18,7 +18,6 @@ print "Data filtered..."
 print "Generating I/O vectors..."
 # the parameters
 X = data[:,2:]
-X = np.hstack((X[:,0:1], X[:,0:1]-X[:,1:2], X[:,1:2]-X[:,2:3], X[:,2:3]-X[:,3:4], X[:,3:4]-X[:,4:5]))
 assert X.shape[1] == 5
 # the output
 Y = data[:,:1]
@@ -34,25 +33,30 @@ X = (X-minx)/(maxx-minx)
 Y = (Y-miny)/(maxy-miny)
 print "Data normalized..."
 
+print "Converting output to categories"
+Y = np.array(map(lambda x:int(x*10-1e-6), Y))
+from keras.utils.np_utils import to_categorical
+Y = to_categorical(Y, 10)
+
 K = X[:100000,:]
-L = X[:110000,:]
+L = X[100000:110000,:]
 M = Y[:100000,:]
-N = Y[:110000,:]
+N = Y[100000:110000,:]
 # Now we define model
 
 print "Defining model..."
 model = Sequential()
 
 # add a dense layer with 10 nodes
-model.add(Dense(64, activation='linear',input_dim=5))
-model.add(Dense(32, activation='linear'))
+model.add(Dense(64, activation='relu',input_dim=5))
+model.add(Dense(32, activation='relu'))
 model.add(Dropout(0.9))
 # layer to output
-model.add(Dense(1, activation = 'sigmoid'))
+model.add(Dense(10, activation = 'softmax'))
 print "Model defined..."
 
 print "Compiling model..."
-model.compile(loss='mean_squared_error', optimizer=RMSprop())
+model.compile(loss='categorical_crossentropy', optimizer=RMSprop())
 print "Model compiled..."
 
 fit_history = model.fit(K, M, nb_epoch = 300, batch_size=10000)
@@ -64,10 +68,10 @@ print "Predict and plotting..."
 Yp = model.predict(L, batch_size=10000)
 assert len(Yp) == len(N)
 
-err = (Yp-N)/(np.sqrt(2))
-mu, sigma = np.mean(err), np.std(err)
-print "Error mean", mu
-print "Error std" , sigma
+#err = (Yp-N)/(np.sqrt(2))
+#mu, sigma = np.mean(err), np.std(err)
+#print "Error mean", mu
+#print "Error std" , sigma
 
 # our favorite plot
 plt.xlim(0,1)
