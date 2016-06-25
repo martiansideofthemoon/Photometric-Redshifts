@@ -12,13 +12,12 @@ data = np.genfromtxt("../data/psf2.csv",delimiter=",")[2:,1:]
 print "Data loaded..."
 
 print "Filtering data..."
-data = np.array(filter(lambda x:((not isnan(x[2])) and min(x[2:])!=-9999), data))
+data = np.array(filter(lambda x:((not isnan(x[2])) and min(x[2:])!=-9999 and (not abs(x[1]/x[0])>0.1)), data))
 print "Data filtered..."
 
 print "Generating I/O vectors..."
 # the parameters
 X = data[:,2:]
-X = np.hstack((X[:,0:1], X[:,0:1]-X[:,1:2], X[:,1:2]-X[:,2:3], X[:,2:3]-X[:,3:4], X[:,3:4]-X[:,4:5]))
 assert X.shape[1] == 5
 # the output
 Y = data[:,:1]
@@ -34,25 +33,30 @@ X = (X-minx)/(maxx-minx)
 Y = (Y-miny)/(maxy-miny)
 print "Data normalized..."
 
+print "Converting output to categories"
+Y = np.array(map(lambda x:int(x*10-1e-6), Y))
+from keras.utils.np_utils import to_categorical
+Y = to_categorical(Y, 10)
+
 K = X[:100000,:]
-L = X[:110000,:]
+L = X[100000:110000,:]
 M = Y[:100000,:]
-N = Y[:110000,:]
+N = Y[100000:110000,:]
 # Now we define model
 
 print "Defining model..."
 model = Sequential()
 
 # add a dense layer with 10 nodes
-model.add(Dense(64, activation='linear',input_dim=5))
-model.add(Dense(32, activation='linear'))
+model.add(Dense(64, activation='relu',input_dim=5))
+model.add(Dense(32, activation='relu'))
 model.add(Dropout(0.9))
 # layer to output
-model.add(Dense(1, activation = 'sigmoid'))
+model.add(Dense(10, activation = 'softmax'))
 print "Model defined..."
 
 print "Compiling model..."
-model.compile(loss='mean_squared_error', optimizer=RMSprop())
+model.compile(loss='categorical_crossentropy', optimizer=RMSprop())
 print "Model compiled..."
 
 fit_history = model.fit(K, M, nb_epoch = 300, batch_size=10000)
@@ -64,10 +68,10 @@ print "Predict and plotting..."
 Yp = model.predict(L, batch_size=10000)
 assert len(Yp) == len(N)
 
-err = (Yp-N)/(np.sqrt(2))
-mu, sigma = np.mean(err), np.std(err)
-print "Error mean", mu
-print "Error std" , sigma
+#err = (Yp-N)/(np.sqrt(2))
+#mu, sigma = np.mean(err), np.std(err)
+#print "Error mean", mu
+#print "Error std" , sigma
 
 # our favorite plot
 plt.xlim(0,1)
@@ -76,39 +80,3 @@ plt.scatter(N, Yp)
 plt.show()
 
 print "Thank You"
-
-# post processing
-
-print "Welcome back..."
-filter_mat = np.hstack((L, N, Yp))
-weird_data = np.array(filter(lambda x:((x[6]>0.07 and x[6]<0.19) and x[5]>0.3), filter_mat))[:,:6]
-wd_X = weird_data[:,:5]
-wd_Y = weird_data[:,5:6]
-
-print "Compiling model..."
-model.compile(loss='mean_squared_error', optimizer=RMSprop(lr=0.0005))
-print "Model compiled..."
-
-fit_history = model.fit(wd_X, wd_Y, nb_epoch = 1000, batch_size=10000)
-
-plt.plot(fit_history.history['loss'])
-plt.show()
-
-print "Predict and plotting..."
-Yp = model.predict(wd_X, batch_size=10000)
-assert len(Yp) == len(wd_Y)
-
-err = (Yp-wd_Y)/(np.sqrt(2))
-mu, sigma = np.mean(err), np.std(err)
-print "Error mean", mu
-print "Error std" , sigma
-
-# our favorite plot
-plt.xlim(0,1)
-plt.ylim(0,1)
-plt.scatter(wd_Y, Yp)
-plt.show()
-
-print "Thank You"
-
-# the end
