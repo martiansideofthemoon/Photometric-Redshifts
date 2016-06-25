@@ -12,7 +12,7 @@ data = np.genfromtxt("../data/psf2.csv",delimiter=",")[2:,1:]
 print "Data loaded..."
 
 print "Filtering data..."
-data = np.array(filter(lambda x:((not isnan(x[2])) and min(x[2:])!=-9999), data))
+data = np.array(filter(lambda x:((not isnan(x[2])) and min(x[2:])!=-9999 and (not abs(x[1]/x[0])>0.1)), data))
 print "Data filtered..."
 
 print "Generating I/O vectors..."
@@ -76,39 +76,3 @@ plt.scatter(N, Yp)
 plt.show()
 
 print "Thank You"
-
-# post processing
-
-print "Welcome back..."
-filter_mat = np.hstack((L, N, Yp))
-weird_data = np.array(filter(lambda x:((x[6]>0.07 and x[6]<0.19) and x[5]>0.3), filter_mat))[:,:6]
-wd_X = weird_data[:,:5]
-wd_Y = weird_data[:,5:6]
-
-print "Compiling model..."
-model.compile(loss='mean_squared_error', optimizer=RMSprop(lr=0.0005))
-print "Model compiled..."
-
-fit_history = model.fit(wd_X, wd_Y, nb_epoch = 1000, batch_size=10000)
-
-plt.plot(fit_history.history['loss'])
-plt.show()
-
-print "Predict and plotting..."
-Yp = model.predict(wd_X, batch_size=10000)
-assert len(Yp) == len(wd_Y)
-
-err = (Yp-wd_Y)/(np.sqrt(2))
-mu, sigma = np.mean(err), np.std(err)
-print "Error mean", mu
-print "Error std" , sigma
-
-# our favorite plot
-plt.xlim(0,1)
-plt.ylim(0,1)
-plt.scatter(wd_Y, Yp)
-plt.show()
-
-print "Thank You"
-
-# the end
