@@ -19,8 +19,6 @@ labels = training_data**2
 points = np.zeros([TEST_SIZE, 2])
 
 for i in range(0, TEST_SIZE):
-	if i%10 == 0:
-		print i
 	# A test vector containing five test parameters
 	test_vector = random.randrange(0, 1000000)/1000.0
 	# Expected z shift value
