@@ -1,12 +1,21 @@
 import tensorflow as tf
+from tensorflow.contrib.layers import xavier_initializer
 import math
 from math import isnan
 import numpy as np
+#COMMENT: np.random.seed(1337)
 import time
 import matplotlib.pyplot as plt
+#COMMENT: tf.set_random_seed(1337)
+
+def gloret(name, shape):
+  return tf.get_variable(name, shape=shape,
+    initializer=xavier_initializer())
+
 
 INPUT_SIZE = 5
 NUM_CLASSES = 1
+random_seed = 20
 
 # Basic model parameters as external flags.
 flags = tf.app.flags
@@ -58,26 +67,29 @@ test_Y = Y[100000:110000,:]
 
 with tf.Graph().as_default():
 
+  tf.set_random_seed(random_seed)
+
   photo_placeholder = tf.placeholder(tf.float32, shape=(batch_size, INPUT_SIZE))
   z_placeholder = tf.placeholder(tf.float32, shape=(batch_size))
 
-  with tf.name_scope('hidden1'):
+  # COMMENT: Use Xavier/Glorot initialization; An implementation is available here
+  # http://deliprao.com/archives/100
+  # TensorFlow also has a xavier initializer: 
+  # https://www.tensorflow.org/versions/r0.8/api_docs/python/contrib.layers.html#xavier_initializer
+  with tf.variable_scope('hidden1'):
     stddev = 1.0 / math.sqrt(float(INPUT_SIZE))
-    weights = tf.Variable(tf.truncated_normal([INPUT_SIZE, hidden_size1], stddev=stddev), name='weights')
+    weights = tf.Variable(gloret('weights', [INPUT_SIZE, hidden_size1]).initialized_value())
     biases = tf.Variable(tf.zeros([hidden_size1]), name='biases')
-    hidden1 = tf.nn.relu(tf.matmul(photo_placeholder, weights) + biases)
+    hidden1 = tf.matmul(photo_placeholder, weights) + biases
 
-  with tf.name_scope('hidden2'):
+  with tf.variable_scope('hidden2'):
     stddev = 1.0 / math.sqrt(float(hidden_size1))
-    weights = tf.Variable(tf.truncated_normal([hidden_size1, hidden_size2], stddev=stddev), name='weights')
+    weights = tf.Variable(gloret('weights', [hidden_size1, hidden_size2]).initialized_value())
     biases = tf.Variable(tf.zeros([hidden_size2]), name='biases')
-    hidden2 = tf.nn.relu(tf.matmul(hidden1, weights) + biases)
+    hidden2 = tf.matmul(hidden1, weights) + biases
 
-  with tf.name_scope('softmax_linear'):
-      weights = tf.Variable(
-          tf.truncated_normal([hidden_size2, NUM_CLASSES],
-                              stddev=1.0 / math.sqrt(float(hidden_size2))),
-          name='weights')
+  with tf.variable_scope('softmax_linear'):
+      weights = tf.Variable(gloret('weights', [hidden_size2, NUM_CLASSES]).initialized_value())
       biases = tf.Variable(tf.zeros([NUM_CLASSES]),
                            name='biases')
       logits = tf.matmul(hidden2, weights) + biases
