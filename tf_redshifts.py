@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.contrib.layers import xavier_initializer
 import math
 from math import isnan
 import numpy as np
@@ -28,14 +29,14 @@ def get_data(filename):
 def add_layer(inputs, in_size, out_size, n_layer, activation_function=None):
     # add one more layer and return the output of this layer
     layer_name = 'layer%s' % n_layer
-    with tf.name_scope(layer_name):
-        with tf.name_scope('weights'):
-            Weights = tf.Variable(tf.random_normal([in_size, out_size]), name='W')
+    with tf.variable_scope(layer_name):
+        with tf.variable_scope('weights'):
+            Weights = tf.get_variable(shape=[in_size, out_size], name='W', initializer=xavier_initializer())
             tf.histogram_summary(layer_name + '/weights', Weights)
-        with tf.name_scope('biases'):
-            biases = tf.Variable(tf.zeros([1, out_size]) + 0.1, name='b')
+        with tf.variable_scope('biases'):
+            biases = tf.get_variable(shape=[1, out_size], name='b', initializer=xavier_initializer())
             tf.histogram_summary(layer_name + '/biases', biases)
-        with tf.name_scope('Wx_plus_b'):
+        with tf.variable_scope('Wx_plus_b'):
             Wx_plus_b = tf.add(tf.matmul(inputs, Weights), biases)
         if activation_function is None:
             outputs = Wx_plus_b
@@ -49,23 +50,23 @@ def add_layer(inputs, in_size, out_size, n_layer, activation_function=None):
 training_X, training_Y, test_X, test_Y = get_data("data/psf2.csv")
 
 # define placeholder for inputs to network
-with tf.name_scope('inputs'):
+with tf.variable_scope('inputs'):
     xs = tf.placeholder(tf.float32, [None, 5], name='x_input')
     ys = tf.placeholder(tf.float32, [None, 1], name='y_input')
 
 # add hidden layer
 l1 = add_layer(xs, 5, 100, n_layer=1, activation_function=tf.nn.relu)
-#l2 = add_layer(l1, 100, 30, n_layer=2, activation_function=tf.nn.relu)
+l2 = add_layer(l1, 100, 30, n_layer=2, activation_function=tf.nn.relu)
 # add output layer
-prediction = add_layer(l1, 100, 1, n_layer=3, activation_function=None)
+prediction = add_layer(l2, 30, 1, n_layer=3, activation_function=None)
 
 # the error between prediciton and real data
-with tf.name_scope('loss'):
+with tf.variable_scope('loss'):
     loss = tf.reduce_mean(tf.reduce_sum(tf.square(ys - prediction),
                                         reduction_indices=[1]))
     tf.scalar_summary('loss', loss)
 
-with tf.name_scope('train'):
+with tf.variable_scope('train'):
     train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
 sess = tf.Session()
