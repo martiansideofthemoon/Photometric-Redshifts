@@ -1,141 +1,105 @@
 import tensorflow as tf
-from tensorflow.contrib.layers import xavier_initializer
 import math
 from math import isnan
 import numpy as np
-#COMMENT: np.random.seed(1337)
-import time
 import matplotlib.pyplot as plt
-#COMMENT: tf.set_random_seed(1337)
 
-def gloret(name, shape):
-  return tf.get_variable(name, shape=shape,
-    initializer=xavier_initializer())
+def get_data(filename):
+    data = np.genfromtxt(filename, delimiter=",")[2:,1:]
+    data = np.array(filter(lambda x:((not isnan(x[2])) and min(x[2:])!=-9999), data))
+    X = data[:,2:]
+    assert X.shape[1] == 5
+    Y = data[:,:1]
+    minx, maxx = np.min(X), np.max(X)
+    miny, maxy = np.min(Y), np.max(Y)
+    X = (X-minx)/(maxx-minx)
+    Y = (Y-miny)/(maxy-miny)
+
+    training_X = X[:100000,:]
+    training_Y = Y[:100000,:]
+    #training_X = np.random.rand(100000, 5)
+    #training_Y = np.sum(X, axis=1, keepdims=True)
+
+    test_X = X[100000:110000,:]
+    test_Y = Y[100000:110000,:]
+
+    return training_X, training_Y, test_X, test_Y
+
+def add_layer(inputs, in_size, out_size, n_layer, activation_function=None):
+    # add one more layer and return the output of this layer
+    layer_name = 'layer%s' % n_layer
+    with tf.name_scope(layer_name):
+        with tf.name_scope('weights'):
+            Weights = tf.Variable(tf.random_normal([in_size, out_size]), name='W')
+            tf.histogram_summary(layer_name + '/weights', Weights)
+        with tf.name_scope('biases'):
+            biases = tf.Variable(tf.zeros([1, out_size]) + 0.1, name='b')
+            tf.histogram_summary(layer_name + '/biases', biases)
+        with tf.name_scope('Wx_plus_b'):
+            Wx_plus_b = tf.add(tf.matmul(inputs, Weights), biases)
+        if activation_function is None:
+            outputs = Wx_plus_b
+        else:
+            outputs = activation_function(Wx_plus_b, )
+        tf.histogram_summary(layer_name + '/outputs', outputs)
+        return outputs
 
 
-INPUT_SIZE = 5
-NUM_CLASSES = 1
-random_seed = 20
+# Make up some real data
+training_X, training_Y, test_X, test_Y = get_data("data/psf2.csv")
 
-# Basic model parameters as external flags.
-flags = tf.app.flags
-FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.001, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 2000, 'Number of steps to run trainer.')
-flags.DEFINE_integer('hidden1', 100, 'Number of units in hidden layer 1.')
-flags.DEFINE_integer('hidden2', 30, 'Number of units in hidden layer 2.')
-flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
-                     'Must divide evenly into the dataset sizes.')
-flags.DEFINE_integer('num_epoch', 40, 'Epoch size')
-flags.DEFINE_string('train_dir', 'data', 'Directory to put the training data.')
-flags.DEFINE_boolean('fake_data', False, 'If true, uses fake data '
-                     'for unit testing.')
+# define placeholder for inputs to network
+with tf.name_scope('inputs'):
+    xs = tf.placeholder(tf.float32, [None, 5], name='x_input')
+    ys = tf.placeholder(tf.float32, [None, 1], name='y_input')
 
-batch_size = FLAGS.batch_size
-hidden_size1 = FLAGS.hidden1
-hidden_size2 = FLAGS.hidden2
-learning_rate = FLAGS.learning_rate
-num_epoch = FLAGS.num_epoch
+# add hidden layer
+l1 = add_layer(xs, 5, 100, n_layer=1, activation_function=tf.nn.relu)
+#l2 = add_layer(l1, 100, 30, n_layer=2, activation_function=tf.nn.relu)
+# add output layer
+prediction = add_layer(l1, 100, 1, n_layer=3, activation_function=None)
 
-print "Reading data..."
-data = np.genfromtxt("data/psf2.csv",delimiter=",")[2:,1:]
-print "Data loaded..."
-print "Filtering data..."
-data = np.array(filter(lambda x:((not isnan(x[2])) and min(x[2:])!=-9999), data))
-print "Data filtered..."
-print "Generating I/O vectors..."
-# the parameters
-X = data[:,2:]
-# the following is TMP
-assert X.shape[1] == 5
-# the output
-Y = data[:,:1]
+# the error between prediciton and real data
+with tf.name_scope('loss'):
+    loss = tf.reduce_mean(tf.reduce_sum(tf.square(ys - prediction),
+                                        reduction_indices=[1]))
+    tf.scalar_summary('loss', loss)
 
-print "Normalizing data..."
-minx, maxx = np.min(X), np.max(X)
-miny, maxy = np.min(Y), np.max(Y)
+with tf.name_scope('train'):
+    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
-X = (X-minx)/(maxx-minx)
-Y = (Y-miny)/(maxy-miny)
-print "Data normalized..."
+sess = tf.Session()
+merged = tf.merge_all_summaries()
+writer = tf.train.SummaryWriter("logs/", sess.graph)
+# important step
+sess.run(tf.initialize_all_variables())
 
-training_X = X[:100000,:]
-training_Y = Y[:100000,:]
+batch_size = 1000
+num_epoch = 100
 
-test_X = X[100000:110000,:]
-test_Y = Y[100000:110000,:]
+steps_per_epoch = len(training_X) / batch_size
 
-with tf.Graph().as_default():
+for epoch in range(num_epoch):
 
-  tf.set_random_seed(random_seed)
+    for step in range(steps_per_epoch):
+        x_data = training_X[step*batch_size:(step+1)*batch_size]
+        y_data = training_Y[step*batch_size:(step+1)*batch_size]
+        sess.run(train_step, feed_dict={xs: x_data, ys: y_data})
+    loss_val = sess.run(loss, feed_dict={xs: x_data, ys: y_data})
+    print "Epoch " + str(epoch) + " and loss = " + str(loss_val)
+    result = sess.run(merged, feed_dict={xs: x_data, ys: y_data})
+    writer.add_summary(result, epoch)
 
-  photo_placeholder = tf.placeholder(tf.float32, shape=(batch_size, INPUT_SIZE))
-  z_placeholder = tf.placeholder(tf.float32, shape=(batch_size))
-
-  # COMMENT: Use Xavier/Glorot initialization; An implementation is available here
-  # http://deliprao.com/archives/100
-  # TensorFlow also has a xavier initializer: 
-  # https://www.tensorflow.org/versions/r0.8/api_docs/python/contrib.layers.html#xavier_initializer
-  with tf.variable_scope('hidden1'):
-    stddev = 1.0 / math.sqrt(float(INPUT_SIZE))
-    weights = tf.Variable(gloret('weights', [INPUT_SIZE, hidden_size1]).initialized_value())
-    biases = tf.Variable(tf.zeros([hidden_size1]), name='biases')
-    hidden1 = tf.matmul(photo_placeholder, weights) + biases
-
-  with tf.variable_scope('hidden2'):
-    stddev = 1.0 / math.sqrt(float(hidden_size1))
-    weights = tf.Variable(gloret('weights', [hidden_size1, hidden_size2]).initialized_value())
-    biases = tf.Variable(tf.zeros([hidden_size2]), name='biases')
-    hidden2 = tf.matmul(hidden1, weights) + biases
-
-  with tf.variable_scope('softmax_linear'):
-      weights = tf.Variable(gloret('weights', [hidden_size2, NUM_CLASSES]).initialized_value())
-      biases = tf.Variable(tf.zeros([NUM_CLASSES]),
-                           name='biases')
-      logits = tf.matmul(hidden2, weights) + biases
-
-  with tf.name_scope('sigmoid'):
-    logits = tf.sigmoid(logits)
-
-  loss = tf.reduce_mean(tf.squared_difference(logits, z_placeholder))
-
-  # Add a scalar summary for the snapshot loss.
-  tf.scalar_summary(loss.op.name, loss)
-  # Create the rmsprop optimizer with the given learning rate.
-  optimizer = tf.train.RMSPropOptimizer(learning_rate)
-  # Create a variable to track the global step.
-  global_step = tf.Variable(0, name='global_step', trainable=False)
-  # Use the optimizer to apply the gradients that minimize the loss
-  # (and also increment the global step counter) as a single training step.
-  train_op = optimizer.minimize(loss, global_step=global_step)
-
-  init = tf.initialize_all_variables()
-  sess = tf.Session()
-
-  sess.run(init)
-
-  steps_per_epoch = len(training_X) / batch_size
-  print str(steps_per_epoch) + " steps per epoch"
-
-  for epoch in range(0, num_epoch):
-    start_time = time.time()
-    for step in range(0, steps_per_epoch):
-      feed_dict = {
-        photo_placeholder: training_X[step*batch_size:(step+1)*batch_size],
-        z_placeholder: training_Y[step*batch_size:(step+1)*batch_size,0]
-      }
-      _, loss_value, biases1 = sess.run([train_op, loss, biases], feed_dict=feed_dict)
-    duration = time.time() - start_time
-    print('Epoch %d: loss = %.5f (%.3f sec)' % (epoch, loss_value, duration))
-
-  steps_per_epoch = len(test_X) / batch_size
-  total = []
-  for step in range(0, steps_per_epoch):
+steps_per_epoch = len(test_X) / batch_size
+total = []
+for step in range(0, steps_per_epoch):
     feed_dict = {
-      photo_placeholder: test_X[step*batch_size:(step+1)*batch_size],
-      z_placeholder: test_Y[step*batch_size:(step+1)*batch_size,0]
+      xs: test_X[step*batch_size:(step+1)*batch_size],
+      ys: test_Y[step*batch_size:(step+1)*batch_size]
     }
-    total.extend(sess.run(logits, feed_dict=feed_dict)[:,0])
-  plt.scatter(test_Y[:,0], total)
-  plt.show()
-  #print "Final loss is " + str(math.sqrt(total/10000.0))
+    total.extend(sess.run(prediction, feed_dict=feed_dict)[:,0])
+plt.scatter(test_Y[:,0], total)
+plt.show()
+
+# direct to the local dir and run this in terminal:
+# $ tensorboard --logdir=logs
